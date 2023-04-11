@@ -95,15 +95,19 @@ class BillController extends BaseController {
   async detail() {
     const { ctx } = this;
     const { id } = ctx.query;
+    if (!id) {
+      throw new HttpException('400', 'Params error, id cannot be empty', null, 400);
+    }
     try {
-      if (!id) {
-        throw new HttpException('400', 'Params error, id cannot be empty', null, 400);
-      }
       const detail = await ctx.service.bill.detail(id, ctx.state?.user?.id);
-      this.onSuccess(detail);
+      if (detail) {
+        this.onSuccess(detail);
+      } else {
+        throw new Error('Record not found');
+      }
     } catch (error) {
       console.log(error);
-      throw new HttpException();
+      throw new HttpException('500', error.message);
     }
   }
 
