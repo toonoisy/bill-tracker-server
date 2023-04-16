@@ -23,9 +23,10 @@ class BillController extends BaseController {
       const { id } = ctx.state?.user;
       // user_id 做用户对应关系
       await ctx.service.bill.add({
+        date,
         amount,
         type_id,
-        date,
+        ctime: String(Date.now()), // time created
         pay_type,
         remark,
         user_id: id,
@@ -40,18 +41,21 @@ class BillController extends BaseController {
   async list() {
     const { ctx } = this;
     const { date, page = 1, page_size = 5, type_id = 'all' } = ctx.query;
+    const monthDate = date;
     try {
       const { id } = ctx.state?.user;
       const list = await ctx.service.bill.list(id);
+      // all bills within the queried date(YYYY-MM)
       const _list = list.filter(e => {
         if (type_id !== 'all') {
-          return dayjs(Number(e.date)).format('YYYY-MM') === date && e.type_id === type_id;
+          return dayjs(e.date).isSame(monthDate, 'month')
+            && e.type_id === Number(type_id);
         }
-        return dayjs(Number(e.date)).format('YYYY-MM')
-        === date;
-      });
+        return dayjs(e.date).isSame(monthDate, 'month');
+      }).sort((a, b) => dayjs(b.ctime) - dayjs(a.ctime));
+
       const _listMap = _list.reduce((acc, cur) => {
-        const date = dayjs(Number(cur.date)).format('YYYY-MM-DD');
+        const date = cur.date;
         const exist = acc?.find(el => el.date === date);
         if (exist) {
           exist.bills.push(cur);
@@ -59,17 +63,17 @@ class BillController extends BaseController {
           // 没有对应日期的对象则创建一个
           acc.push({
             date,
+            // re-organized bills under the same day(YYYY-MM-DD)
             bills: [ cur ],
           });
         }
         return acc;
       }, []).sort((a, b) => dayjs(b.date) - dayjs(a.date));
 
-      const paginatedListMap = _listMap.slice(page - 1 * page_size, page * page_size);
+      const paginatedListMap = _listMap.slice((page - 1) * page_size, page * page_size);
       const totalPage = Math.ceil(_listMap.length / page_size);
       const monthList = list.filter(e => {
-        return dayjs(Number(e.date)).format('YYYY-MM')
-          === date;
+        return dayjs(e.date).isSame(monthDate, 'month');
       });
       const totalExpense = monthList.reduce((acc, cur) => {
         if (cur.pay_type === PAY_TYPES.EXPENSE) acc += Number(cur.amount);
@@ -119,7 +123,16 @@ class BillController extends BaseController {
     }
 
     try {
-      const params = { id, pay_type, amount, date, type_id, remark, user_id: ctx.state?.user.id };
+      const params = {
+        id,
+        date,
+        pay_type,
+        amount,
+        mtime: String(Date.now()), // time modified
+        type_id,
+        remark,
+        user_id: ctx.state?.user.id,
+      };
       const res = await ctx.service.bill.update(params);
       if (res.affectedRows === 1) {
         this.onSuccess();
@@ -163,12 +176,11 @@ class BillController extends BaseController {
       const { id } = ctx.state?.user;
       const source = await ctx.service.bill.list(id);
       const list = source.filter(e => {
-        return dayjs(Number(e.date)).format('YYYY-MM') === date;
+        return dayjs(e.date).isSame(date, 'month');
       }).reduce((acc, cur) => {
         const existBillType = acc.find(e => e.type_id === cur.type_id);
         if (existBillType) {
           existBillType.total_amount = (Number(existBillType.total_amount) + Number(cur.amount)).toFixed(2);
-          console.log(existBillType);
         } else {
           acc.push({
             type_id: cur.type_id,

@@ -47,7 +47,6 @@ class UserController extends BaseController {
       // 一周有效
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60 * 7),
     }, app.config.jwt.secret);
-    // console.log(ctx.state);
     this.onSuccess({ token }, 'Successful login');
   }
 

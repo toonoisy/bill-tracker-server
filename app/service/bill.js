@@ -11,7 +11,7 @@ class BillService extends Service {
 
   async list(id) {
     const { app } = this;
-    const QUERY_STR = 'id, pay_type, amount, date, type_id, remark';
+    const QUERY_STR = 'id, pay_type, amount, date, ctime, mtime, type_id, remark';
     const sql = `select ${QUERY_STR} from bill where user_id = ${id}`;
     const res = await app.mysql.query(sql);
     return res;
