@@ -14,6 +14,7 @@ module.exports = app => {
   router.post('/api/user/login', controller.user.login);
   router.post('/api/user/edit_userinfo', _jwt, controller.user.editUserInfo);
   router.get('/api/user/get_userinfo', _jwt, controller.user.getUserInfo);
+  router.post('/api/user/reset_password', _jwt, controller.user.resetPassword);
   // upload
   router.post('/api/upload', controller.upload.upload);
   // type

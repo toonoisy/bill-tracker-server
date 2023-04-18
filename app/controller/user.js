@@ -83,6 +83,27 @@ class UserController extends BaseController {
       console.log(error);
     }
   }
+
+  async resetPassword() {
+    const { ctx } = this;
+    const { oldPW, newPW, confirmNewPW } = ctx.request.body;
+    if (newPW !== confirmNewPW) {
+      throw new HttpException('500', 'Your new passwords entered twice does not match', null);
+    }
+    const { username } = ctx.state?.user;
+    const { id, password } = await ctx.service.user.getUserByName(username);
+    if (oldPW !== password) {
+      throw new HttpException('500', 'Your old password does not match our database', null);
+    }
+    if (newPW === password) {
+      throw new HttpException('500', 'Do not reuse any recently used passwords', null);
+    }
+    await ctx.service.user.editUserInfo({
+      id,
+      password: confirmNewPW,
+    });
+    this.onSuccess();
+  }
 }
 
 module.exports = UserController;
